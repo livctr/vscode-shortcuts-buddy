@@ -23,6 +23,10 @@
       {
         "command": "shortcuts-helper.helloWorld",
         "title": "Hello World"
+      },
+      {
+        "command": "shortcuts-helper.viewLearnedShortcuts",
+        "title": "Shortcuts Helper: View Learned Shortcuts"
       }
     ],
     "configuration": {
@@ -32,6 +36,16 @@
           "type": "number",
           "default": 5000,
           "description": "Cooldown interval in milliseconds between recommendations."
+        },
+        "shortcutsHelper.sessionRecommendationLimit": {
+          "type": "number",
+          "default": 100,
+          "description": "Maximum number of recommendations to show per session."
+        },
+        "shortcutsHelper.debounceInterval": {
+          "type": "number",
+          "default": 500,
+          "description": "Delay in milliseconds after typing or scrolling before analyzing events."
         }
       }
     }

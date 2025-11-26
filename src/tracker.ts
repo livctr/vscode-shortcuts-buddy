@@ -1,189 +1,182 @@
 import * as vscode from 'vscode';
+import { EventEmitter } from 'events';
+
+export type InteractionType =
+    | 'activeEditorChange'
+    | 'textChange'
+    | 'selectionChange'
+    | 'fileSave'
+    | 'documentClose'
+    | 'activeTerminalChange'
+    | 'windowStateChange'
+    | 'commandExecution'
+    | 'panelVisibilityChange'
+    | 'intelliSenseTrigger'
+    | 'peekDefinitionTrigger'
+    | 'quickFixTrigger'
+    | 'referencesTrigger'
+    | 'debugStart'
+    | 'debugStop';
 
 export interface InteractionEvent {
-    type: 'textChange' | 'selectionChange' | 'activeEditorChange' | 'visibleRangeChange' | 'fileSave' | 'windowStateChange' | 'activeTerminalChange' | 'visibleEditorsChange';
+    type: InteractionType;
     timestamp: number;
-    data: any;
     context?: any;
 }
 
-export class InteractionTracker {
-    private events: InteractionEvent[] = [];
-    private readonly MAX_EVENTS = 50;
-    private lastScrollTime = 0;
-    private readonly SCROLL_DEBOUNCE_MS = 500;
+export class InteractionTracker extends EventEmitter {
+    private disposables: vscode.Disposable[] = [];
+    private previousState = {
+        editor: undefined as vscode.TextEditor | undefined,
+        tabGroupCount: 0,
+        activeTabGroupIndex: -1,
+        tabCountInActiveGroup: 0,
+        viewColumn: undefined as vscode.ViewColumn | undefined,
+        isPreview: false
+    };
 
     constructor() {
-        // =====================================================================================
-        // 1. Editor Interactions
-        // =====================================================================================
-
-        // Text Manipulation (Typing, Deleting, Pasting)
-        vscode.workspace.onDidChangeTextDocument(this.onTextChange, this);
-
-        // Cursor Movement & Selection
-        vscode.window.onDidChangeTextEditorSelection(this.onSelectionChange, this);
-
-        // Navigation/Reading (Scrolling)
-        vscode.window.onDidChangeTextEditorVisibleRanges(this.onVisibleRangeChange, this);
-
-
-        // =====================================================================================
-        // 2. Window & Workbench Management
-        // =====================================================================================
-
-        // Tab Management (Switching tabs)
-        vscode.window.onDidChangeActiveTextEditor(this.onActiveEditorChange, this);
-
-        // Editor Layout (Splitting)
-        vscode.window.onDidChangeVisibleTextEditors(this.onVisibleEditorsChange, this);
-
-        // Focus Changes (Window focus - Alt+Tab)
-        vscode.window.onDidChangeWindowState(this.onWindowStateChange, this);
-
-
-        // =====================================================================================
-        // 3. File System & Project
-        // =====================================================================================
-
-        // Persistence (Saving)
-        vscode.workspace.onDidSaveTextDocument(this.onFileSave, this);
-
-
-        // =====================================================================================
-        // 4. Terminal & Tasks
-        // =====================================================================================
-
-        // Focus Changes (Terminal)
-        vscode.window.onDidChangeActiveTerminal(this.onActiveTerminalChange, this);
+        super();
+        this.setupListeners();
     }
 
-    // =====================================================================================
-    // 1. Editor Interactions Handlers
-    // =====================================================================================
+    private setupListeners(): void {
+        // Active editor changes with rich context
+        this.disposables.push(
+            vscode.window.onDidChangeActiveTextEditor((editor) => {
+                // Capture current state
+                const tabGroups = vscode.window.tabGroups;
+                const activeGroup = tabGroups.activeTabGroup;
+                const activeTab = activeGroup?.activeTab;
 
-    private onTextChange(event: vscode.TextDocumentChangeEvent) {
-        if (event.contentChanges.length === 0) return;
+                const currentState = {
+                    // Editor info
+                    editor,
+                    viewColumn: editor?.viewColumn,
 
-        // Capture snapshot of affected lines
-        const affectedLines: string[] = [];
-        for (const change of event.contentChanges) {
-            const startLine = change.range.start.line;
-            const endLine = change.range.start.line + (change.text.match(/\n/g) || []).length;
+                    // Document info
+                    isUntitled: editor?.document.isUntitled ?? false,
+                    languageId: editor?.document.languageId,
+                    fileName: editor?.document.fileName,
 
-            // Be careful with large changes, limit snapshot size
-            if (endLine - startLine < 10) {
-                // Capture context: 1 line before and 1 line after
-                const contextStart = Math.max(0, startLine - 1);
-                const contextEnd = Math.min(event.document.lineCount - 1, endLine + 1);
+                    // Tab group info
+                    tabGroupCount: tabGroups.all.length,
+                    activeTabGroupIndex: tabGroups.all.indexOf(activeGroup!),
+                    tabCountInActiveGroup: activeGroup?.tabs.length ?? 0,
 
-                for (let i = contextStart; i <= contextEnd; i++) {
-                    affectedLines.push(event.document.lineAt(i).text);
-                }
-            }
-        }
+                    // Tab info
+                    isPreview: activeTab?.isPreview ?? false,
+                    isPinned: activeTab?.isPinned ?? false,
+                    tabLabel: activeTab?.label,
 
-        this.addEvent({
-            type: 'textChange',
+                    // Visible editors
+                    visibleEditorCount: vscode.window.visibleTextEditors.length
+                };
+
+                // Calculate deltas
+                const context = {
+                    ...currentState,
+                    previous: this.previousState,
+
+                    // Change indicators
+                    tabGroupCountChanged: currentState.tabGroupCount !== this.previousState.tabGroupCount,
+                    tabGroupCountIncreased: currentState.tabGroupCount > this.previousState.tabGroupCount,
+                    tabGroupCountDecreased: currentState.tabGroupCount < this.previousState.tabGroupCount,
+
+                    viewColumnChanged: currentState.viewColumn !== this.previousState.viewColumn,
+
+                    tabCountChanged: currentState.tabCountInActiveGroup !== this.previousState.tabCountInActiveGroup,
+                    tabCountIncreased: currentState.tabCountInActiveGroup > this.previousState.tabCountInActiveGroup,
+
+                    previewStatusChanged: currentState.isPreview !== this.previousState.isPreview,
+                    becameNonPreview: this.previousState.isPreview && !currentState.isPreview,
+
+                    // Same document check
+                    sameDocument: editor?.document.uri.toString() ===
+                        this.previousState.editor?.document.uri.toString()
+                };
+
+                this.emitEvent('activeEditorChange', context);
+
+                // Update previous state
+                this.previousState = {
+                    editor,
+                    tabGroupCount: currentState.tabGroupCount,
+                    activeTabGroupIndex: currentState.activeTabGroupIndex,
+                    tabCountInActiveGroup: currentState.tabCountInActiveGroup,
+                    viewColumn: currentState.viewColumn,
+                    isPreview: currentState.isPreview
+                };
+            })
+        );
+
+        // Text document changes
+        this.disposables.push(
+            vscode.workspace.onDidChangeTextDocument((event) => {
+                this.emitEvent('textChange', { document: event.document, changes: event.contentChanges });
+            })
+        );
+
+        // Selection changes
+        this.disposables.push(
+            vscode.window.onDidChangeTextEditorSelection((event) => {
+                this.emitEvent('selectionChange', { editor: event.textEditor, selections: event.selections });
+            })
+        );
+
+        // File save
+        this.disposables.push(
+            vscode.workspace.onDidSaveTextDocument((document) => {
+                this.emitEvent('fileSave', { document });
+            })
+        );
+
+        // Document close
+        this.disposables.push(
+            vscode.workspace.onDidCloseTextDocument((document) => {
+                this.emitEvent('documentClose', { document });
+            })
+        );
+
+        // Terminal changes
+        this.disposables.push(
+            vscode.window.onDidChangeActiveTerminal((terminal) => {
+                this.emitEvent('activeTerminalChange', { terminal });
+            })
+        );
+
+        // Window state changes
+        this.disposables.push(
+            vscode.window.onDidChangeWindowState((state) => {
+                this.emitEvent('windowStateChange', { state });
+            })
+        );
+
+        // Debug session changes
+        this.disposables.push(
+            vscode.debug.onDidStartDebugSession((session) => {
+                this.emitEvent('debugStart', { session });
+            })
+        );
+
+        this.disposables.push(
+            vscode.debug.onDidTerminateDebugSession((session) => {
+                this.emitEvent('debugStop', { session });
+            })
+        );
+    }
+
+    private emitEvent(type: InteractionType, context?: any): void {
+        const event: InteractionEvent = {
+            type,
             timestamp: Date.now(),
-            data: event,
-            context: {
-                affectedLines
-            }
-        });
+            context
+        };
+        this.emit('interaction', event);
     }
 
-    private onSelectionChange(event: vscode.TextEditorSelectionChangeEvent) {
-        this.addEvent({
-            type: 'selectionChange',
-            timestamp: Date.now(),
-            data: event
-        });
-    }
-
-    private onVisibleRangeChange(event: vscode.TextEditorVisibleRangesChangeEvent) {
-        const now = Date.now();
-        if (now - this.lastScrollTime < this.SCROLL_DEBOUNCE_MS) {
-            return;
-        }
-        this.lastScrollTime = now;
-
-        this.addEvent({
-            type: 'visibleRangeChange',
-            timestamp: now,
-            data: {
-                visibleRanges: event.visibleRanges,
-                fileName: event.textEditor.document.fileName
-            }
-        });
-    }
-
-    // =====================================================================================
-    // 2. Window & Workbench Management Handlers
-    // =====================================================================================
-
-    private onActiveEditorChange(editor: vscode.TextEditor | undefined) {
-        if (!editor) return; // User clicked outside VS Code or closed all tabs
-        this.addEvent({
-            type: 'activeEditorChange',
-            timestamp: Date.now(),
-            data: { fileName: editor.document.fileName }
-        });
-    }
-
-    private onVisibleEditorsChange(editors: readonly vscode.TextEditor[]) {
-        this.addEvent({
-            type: 'visibleEditorsChange',
-            timestamp: Date.now(),
-            data: { count: editors.length }
-        });
-    }
-
-    private onWindowStateChange(state: vscode.WindowState) {
-        this.addEvent({
-            type: 'windowStateChange',
-            timestamp: Date.now(),
-            data: { focused: state.focused }
-        });
-    }
-
-    // =====================================================================================
-    // 3. File System & Project Handlers
-    // =====================================================================================
-
-    private onFileSave(document: vscode.TextDocument) {
-        this.addEvent({
-            type: 'fileSave',
-            timestamp: Date.now(),
-            data: { fileName: document.fileName, language: document.languageId }
-        });
-    }
-
-    // =====================================================================================
-    // 4. Terminal & Tasks Handlers
-    // =====================================================================================
-
-    private onActiveTerminalChange(terminal: vscode.Terminal | undefined) {
-        if (!terminal) return;
-        this.addEvent({
-            type: 'activeTerminalChange',
-            timestamp: Date.now(),
-            data: { name: terminal.name }
-        });
-    }
-
-    // =====================================================================================
-    // Utilities
-    // =====================================================================================
-
-    private addEvent(event: InteractionEvent) {
-        this.events.push(event);
-        if (this.events.length > this.MAX_EVENTS) {
-            this.events.shift();
-        }
-    }
-
-    public getRecentEvents(): InteractionEvent[] {
-        return [...this.events];
+    public dispose(): void {
+        this.disposables.forEach(d => d.dispose());
+        this.disposables = [];
     }
 }

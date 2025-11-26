@@ -1,251 +1,408 @@
 import * as vscode from 'vscode';
 import { InteractionEvent } from './tracker';
-
-export interface Recommendation {
-    id: string;
-    message: string;
-    shortcut: string;
-}
+import { ShortcutsLoader, Shortcut } from './shortcuts-loader';
+import { LearnedShortcutsManager } from './learned-shortcuts-manager';
 
 export class Analyzer {
-    private lastAnalyzedTimestamp: number = 0;
-    private lastScrollRecommendationTime: number = 0;
-    private readonly SCROLL_RECOMMENDATION_COOLDOWN = 5 * 60 * 1000; // 5 minutes
+    private lastRecommendationTime: number = 0;
+    private cooldownInterval: number;
+    private sessionRecommendationLimit: number;
+    private shownShortcuts: Set<string> = new Set();
 
-    public analyze(events: InteractionEvent[]): Recommendation | null {
-        if (events.length === 0) return null;
-
-        const lastEvent = events[events.length - 1];
-
-        // Prevent re-analyzing the same event
-        if (lastEvent.timestamp <= this.lastAnalyzedTimestamp) {
-            return null;
-        }
-        this.lastAnalyzedTimestamp = lastEvent.timestamp;
-
-        console.log('Analyzing event:', lastEvent.type, JSON.stringify(lastEvent.data));
-
-        return this.detectToggleLineComment(events, lastEvent)
-            || this.detectDeleteWordLeft(events, lastEvent)
-            || this.detectCopyLineDown(events, lastEvent)
-            || this.detectMoveLine(events, lastEvent)
-            || this.detectNextFindMatch(events, lastEvent)
-            || this.detectTabSwitching(events, lastEvent)
-            || this.detectSplitEditor(events, lastEvent)
-            || this.detectToggleTerminal(events, lastEvent)
-            || this.detectSave(events, lastEvent)
-            || this.detectScrolling(events, lastEvent);
+    constructor(
+        private shortcutsLoader: ShortcutsLoader,
+        private learnedShortcutsManager: LearnedShortcutsManager
+    ) {
+        const config = vscode.workspace.getConfiguration('shortcutsHelper');
+        this.cooldownInterval = config.get<number>('cooldownInterval', 300000);
+        this.sessionRecommendationLimit = config.get<number>('sessionRecommendationLimit', 3);
     }
 
-    private getPrevTextChange(events: InteractionEvent[], startIndex: number): InteractionEvent | null {
-        for (let i = startIndex; i >= 0; i--) {
-            if (events[i].type === 'textChange') {
-                return events[i];
+    public async analyzeInteraction(event: InteractionEvent): Promise<void> {
+        // Check cooldown
+        const now = Date.now();
+        if (now - this.lastRecommendationTime < this.cooldownInterval) {
+            return;
+        }
+
+        // Check session limit
+        // If we've reached the limit, we can only show shortcuts we've already shown
+        const isSessionLimitReached = this.shownShortcuts.size >= this.sessionRecommendationLimit;
+
+        // Get shortcuts matching this interaction type
+        const matchingShortcuts = this.shortcutsLoader.getShortcutsByType(event.type);
+
+        if (matchingShortcuts.length === 0) {
+            return;
+        }
+
+        // Apply context-specific filtering
+        const filteredShortcuts = this.filterByContext(matchingShortcuts, event);
+
+        if (filteredShortcuts.length === 0) {
+            return;
+        }
+
+        // Filter out learned shortcuts
+        const unlearnedShortcuts = filteredShortcuts.filter(
+            shortcut => !this.learnedShortcutsManager.isLearned(shortcut.shortcut, shortcut.action)
+        );
+
+        if (unlearnedShortcuts.length === 0) {
+            return;
+        }
+
+        // Apply session limit filtering
+        let candidates = unlearnedShortcuts;
+        if (isSessionLimitReached) {
+            candidates = unlearnedShortcuts.filter(s => this.shownShortcuts.has(this.getShortcutKey(s)));
+        }
+
+        if (candidates.length === 0) {
+            return;
+        }
+
+        // Select the best shortcut to show
+        const selectedShortcut = this.selectBestShortcut(candidates, event);
+
+        // Update state BEFORE showing recommendation to prevent race conditions
+        this.lastRecommendationTime = now;
+        this.shownShortcuts.add(this.getShortcutKey(selectedShortcut));
+
+        // Show recommendation
+        await this.showRecommendation(selectedShortcut);
+    }
+
+    private filterByContext(shortcuts: Shortcut[], event: InteractionEvent): Shortcut[] {
+        // Apply context-specific filtering based on event type
+        switch (event.type) {
+            case 'activeEditorChange':
+                return this.filterActiveEditorChange(shortcuts, event);
+
+            case 'activeTerminalChange':
+                return this.filterActiveTerminalChange(shortcuts, event);
+
+            case 'commandExecution':
+                return this.filterCommandExecution(shortcuts, event);
+
+            case 'documentClose':
+                return this.filterDocumentClose(shortcuts, event);
+
+            case 'fileSave':
+                return this.filterFileSave(shortcuts, event);
+
+            case 'intelliSenseTrigger':
+                return this.filterIntelliSenseTrigger(shortcuts, event);
+
+            case 'panelVisibilityChange':
+                return this.filterPanelVisibilityChange(shortcuts, event);
+
+            case 'peekDefinitionTrigger':
+                return this.filterPeekDefinitionTrigger(shortcuts, event);
+
+            case 'quickFixTrigger':
+                return this.filterQuickFixTrigger(shortcuts, event);
+
+            case 'referencesTrigger':
+                return this.filterReferencesTrigger(shortcuts, event);
+
+            case 'selectionChange':
+                return this.filterSelectionChange(shortcuts, event);
+
+            case 'textChange':
+                return this.filterTextChange(shortcuts, event);
+
+            case 'windowStateChange':
+                return this.filterWindowStateChange(shortcuts, event);
+
+            case 'debugStart':
+                return this.filterDebugStart(shortcuts, event);
+
+            case 'debugStop':
+                return this.filterDebugStop(shortcuts, event);
+
+            default:
+                return shortcuts;
+        }
+    }
+
+    // ============================================================================
+    // Individual Interaction Type Handlers
+    // ============================================================================
+
+    private filterActiveEditorChange(shortcuts: Shortcut[], event: InteractionEvent): Shortcut[] {
+        // Only recommend if there's an active editor
+        if (!event.context?.editor) {
+            return [];
+        }
+
+        const ctx = event.context;
+
+        // Debug: Show filename information
+        console.log('=== DEBUG: Active Editor Change ===');
+        console.log('Filename:', ctx.fileName);
+        console.log('Language ID:', ctx.languageId);
+        console.log('Is Untitled:', ctx.isUntitled);
+        console.log('Tab Count Increased:', ctx.tabCountIncreased);
+        console.log('Tab Group Count Increased:', ctx.tabGroupCountIncreased);
+        console.log('===================================');
+
+        return shortcuts.filter(s => {
+            const shortcut = s.shortcut;
+
+            // === GROUP 1: SPLIT EDITOR ===
+            if (shortcut.includes('Ctrl+\\')) {
+                // Split creates a new editor group
+                return ctx.tabGroupCountIncreased;
+            }
+
+            // === GROUP 2: NEW FILES ===
+            if (shortcut.includes('Ctrl+N')) {
+                // New file is untitled - check both isUntitled flag and filename
+                const hasUntitledInName = ctx.fileName?.includes('Untitled') ?? false;
+                return (ctx.isUntitled || hasUntitledInName) && ctx.tabCountIncreased;
+            }
+
+            if (shortcut.includes('Ctrl+O') || shortcut.includes('Ctrl+P')) {
+                // Opening file increases tab count but is NOT untitled
+                const hasUntitledInName = ctx.fileName?.includes('Untitled') ?? false;
+                return !ctx.isUntitled && !hasUntitledInName && ctx.tabCountIncreased;
+            }
+
+            if (shortcut.includes('Ctrl+Shift+T')) {
+                // Reopen increases tab count
+                return ctx.tabCountIncreased;
+            }
+
+            // === GROUP 3: NAVIGATION WITHIN TABS ===
+            if (shortcut.includes('PageUp') || shortcut.includes('PageDown')) {
+                // Navigate within same group, no count changes
+                return !ctx.tabCountChanged && !ctx.viewColumnChanged;
+            }
+
+            if (shortcut.includes('Ctrl+Tab')) {
+                // Navigate through history, might change groups
+                return !ctx.tabCountChanged;
+            }
+
+            if (shortcut.includes('Alt+') && /Alt\+\d/.test(shortcut)) {
+                // Alt+1/2/3 - go to specific tab number
+                return !ctx.tabCountChanged && !ctx.viewColumnChanged;
+            }
+
+            if (shortcut.includes('Ctrl+1') || shortcut.includes('Ctrl+2') || shortcut.includes('Ctrl+3')) {
+                // Focus into specific editor group - viewColumn changes
+                return ctx.viewColumnChanged && !ctx.tabCountChanged;
+            }
+
+            // === GROUP 4: EDITOR GROUP NAVIGATION ===
+            if (shortcut.includes('Ctrl+K Ctrl+←') || shortcut.includes('Ctrl+K Ctrl+→')) {
+                // Focus into prev/next group
+                return ctx.viewColumnChanged && !ctx.tabCountChanged;
+            }
+
+            // === GROUP 5: MOVING EDITORS ===
+            if (shortcut.includes('Ctrl+K ←') || shortcut.includes('Ctrl+K →')) {
+                // Move editor group - might change group count or order
+                return ctx.tabGroupCount > 1;
+            }
+
+            if (shortcut.includes('Ctrl+Shift+PgUp') || shortcut.includes('Ctrl+Shift+PgDn')) {
+                // Move editor left/right within group
+                return !ctx.tabCountChanged;
+            }
+
+            // === GROUP 6: PREVIEW MODE ===
+            if (shortcut.includes('Ctrl+K Enter')) {
+                // Keep preview open - preview becomes non-preview
+                return ctx.becameNonPreview;
+            }
+
+            // === GROUP 7: MARKDOWN PREVIEW ===
+            if (shortcut.includes('Ctrl+K V')) {
+                // Open preview to the side - increases groups
+                // Check both languageId and filename extension
+                const isMarkdown = ctx.languageId === 'markdown' || ctx.fileName?.endsWith('.md') || ctx.fileName?.endsWith('.markdown');
+                return isMarkdown && ctx.tabGroupCountIncreased;
+            }
+
+            if (shortcut.includes('Ctrl+Shift+V')) {
+                // Open preview - might replace current or open new
+                // Check both languageId and filename extension
+                const isMarkdown = ctx.languageId === 'markdown' || ctx.fileName?.endsWith('.md') || ctx.fileName?.endsWith('.markdown');
+                return isMarkdown;
+            }
+
+            // === GROUP 8: GO TO DEFINITION ===
+            if (shortcut === 'F12') {
+                // Go to definition - same document or new
+                return true; // Hard to differentiate from other navigation
+            }
+
+            if (shortcut.includes('Ctrl+K F12')) {
+                // Open definition to side - increases groups
+                return ctx.tabGroupCountIncreased;
+            }
+
+            // === GROUP 9: LAYOUT CHANGES ===
+            if (shortcut.includes('Shift+Alt+0')) {
+                // Toggle layout - group count stays same but arrangement changes
+                return ctx.tabGroupCount > 1;
+            }
+
+            // === GROUP 10: CLOSE ALL ===
+            if (shortcut.includes('Ctrl+K Ctrl+W')) {
+                // Close all - this actually triggers documentClose, not activeEditorChange
+                // But if it does trigger, tab count would decrease dramatically
+                return ctx.tabCountInActiveGroup === 0;
+            }
+
+            // Default: allow if we can't confidently filter out
+            return true;
+        });
+    }
+
+    private filterActiveTerminalChange(shortcuts: Shortcut[], event: InteractionEvent): Shortcut[] {
+        // Only recommend if there's an active terminal
+        if (!event.context?.terminal) {
+            return [];
+        }
+        return shortcuts;
+    }
+
+    private filterCommandExecution(shortcuts: Shortcut[], event: InteractionEvent): Shortcut[] {
+        // Command execution events are generally valid
+        // Could add specific command filtering here if needed
+        return shortcuts;
+    }
+
+    private filterDocumentClose(shortcuts: Shortcut[], event: InteractionEvent): Shortcut[] {
+        // Only recommend if a document was actually closed
+        if (!event.context?.document) {
+            return [];
+        }
+        return shortcuts;
+    }
+
+    private filterFileSave(shortcuts: Shortcut[], event: InteractionEvent): Shortcut[] {
+        // Only recommend if a document was actually saved
+        if (!event.context?.document) {
+            return [];
+        }
+        return shortcuts;
+    }
+
+    private filterIntelliSenseTrigger(shortcuts: Shortcut[], event: InteractionEvent): Shortcut[] {
+        // IntelliSense events are generally valid when triggered
+        return shortcuts;
+    }
+
+    private filterPanelVisibilityChange(shortcuts: Shortcut[], event: InteractionEvent): Shortcut[] {
+        // Panel visibility changes are generally valid
+        return shortcuts;
+    }
+
+    private filterPeekDefinitionTrigger(shortcuts: Shortcut[], event: InteractionEvent): Shortcut[] {
+        // Peek definition events are generally valid when triggered
+        return shortcuts;
+    }
+
+    private filterQuickFixTrigger(shortcuts: Shortcut[], event: InteractionEvent): Shortcut[] {
+        // Quick fix events are generally valid when triggered
+        return shortcuts;
+    }
+
+    private filterReferencesTrigger(shortcuts: Shortcut[], event: InteractionEvent): Shortcut[] {
+        // References events are generally valid when triggered
+        return shortcuts;
+    }
+
+    private filterSelectionChange(shortcuts: Shortcut[], event: InteractionEvent): Shortcut[] {
+        // Only recommend if there's an active editor and selections
+        if (!event.context?.editor || !event.context?.selections) {
+            return [];
+        }
+        return shortcuts;
+    }
+
+    private filterTextChange(shortcuts: Shortcut[], event: InteractionEvent): Shortcut[] {
+        // Only recommend if there were actual changes
+        if (!event.context?.changes || event.context.changes.length === 0) {
+            return [];
+        }
+        return shortcuts;
+    }
+
+    private filterWindowStateChange(shortcuts: Shortcut[], event: InteractionEvent): Shortcut[] {
+        // Only recommend if the window state actually changed
+        if (!event.context?.state) {
+            return [];
+        }
+        return shortcuts;
+    }
+
+    private filterDebugStart(shortcuts: Shortcut[], event: InteractionEvent): Shortcut[] {
+        // Debug start events are generally valid when triggered
+        return shortcuts;
+    }
+
+    private filterDebugStop(shortcuts: Shortcut[], event: InteractionEvent): Shortcut[] {
+        // Debug stop events are generally valid when triggered
+        return shortcuts;
+    }
+
+    private selectBestShortcut(shortcuts: Shortcut[], event: InteractionEvent): Shortcut {
+        // Prioritize specific shortcuts based on event type
+        if (event.type === 'windowStateChange') {
+            const altTab = shortcuts.find(s => s.shortcut === 'Alt+Tab');
+            if (altTab) {
+                return altTab;
             }
         }
-        return null;
-    }
 
-    // Rule: Ctrl+/ (Toggle Line Comment)
-    private detectToggleLineComment(events: InteractionEvent[], lastEvent: InteractionEvent): Recommendation | null {
-        if (lastEvent.type !== 'textChange') return null;
-
-        const changes = lastEvent.data.contentChanges;
-        if (changes.length === 1 && changes[0].text === '/') {
-            const prevTextEvent = this.getPrevTextChange(events, events.length - 2);
-
-            if (prevTextEvent && prevTextEvent.data.contentChanges.length === 1 && prevTextEvent.data.contentChanges[0].text === '/') {
-                const range = changes[0].range;
-                const line = lastEvent.data.document.lineAt(range.start.line);
-                const textBefore = line.text.substring(0, range.start.character + 1);
-                if (textBefore.trim() === '//') {
-                    return {
-                        id: 'toggleLineComment',
-                        message: 'toggle line comment',
-                        shortcut: 'Ctrl+/'
-                    };
-                }
+        if (event.type === 'activeTerminalChange') {
+            const ctrlBacktick = shortcuts.find(s => s.shortcut === 'Ctrl+`');
+            if (ctrlBacktick) {
+                return ctrlBacktick;
             }
         }
-        return null;
+
+        return this.selectRandomShortcut(shortcuts);
     }
 
-    // Rule: Ctrl+Backspace (Delete Word Left)
-    private detectDeleteWordLeft(events: InteractionEvent[], lastEvent: InteractionEvent): Recommendation | null {
-        if (lastEvent.type !== 'textChange') return null;
-
-        if (lastEvent.data.contentChanges.length === 1 && lastEvent.data.contentChanges[0].text === '') {
-            let deletionCount = 0;
-            for (let i = events.length - 1; i >= 0; i--) {
-                const e = events[i];
-                if (e.type === 'textChange') {
-                    if (e.data.contentChanges.length === 1 && e.data.contentChanges[0].text === '' && e.data.contentChanges[0].rangeLength === 1) {
-                        deletionCount++;
-                    } else {
-                        break;
-                    }
-                }
-            }
-
-            if (deletionCount >= 3) {
-                return {
-                    id: 'deleteWordLeft',
-                    message: 'delete word left',
-                    shortcut: 'Ctrl+Backspace'
-                };
-            }
-        }
-        return null;
+    private selectRandomShortcut(shortcuts: Shortcut[]): Shortcut {
+        const randomIndex = Math.floor(Math.random() * shortcuts.length);
+        return shortcuts[randomIndex];
     }
 
-    // Rule: Shift+Alt+Down (Copy Line Down)
-    private detectCopyLineDown(events: InteractionEvent[], lastEvent: InteractionEvent): Recommendation | null {
-        if (lastEvent.type !== 'textChange') return null;
+    private async showRecommendation(shortcut: Shortcut): Promise<void> {
+        const message = `Shortcut Tip: Use ${shortcut.shortcut} to ${this.formatAction(shortcut.action)}`;
+        const response = await vscode.window.showInformationMessage(
+            message,
+            "I got it! Don't show again",
+            "OK"
+        );
 
-        if (lastEvent.data.contentChanges.length === 1) {
-            const change = lastEvent.data.contentChanges[0];
-            if (change.text.includes('\n')) {
-                if (lastEvent.context && lastEvent.context.affectedLines) {
-                    const lines = lastEvent.context.affectedLines;
-                    for (let i = 0; i < lines.length - 1; i++) {
-                        const current = lines[i].trim();
-                        const next = lines[i + 1].trim();
-                        if (current.length > 0 && current === next) {
-                            return {
-                                id: 'copyLineDown',
-                                message: 'copy line down',
-                                shortcut: 'Shift+Alt+Down'
-                            };
-                        }
-                    }
-                }
-            }
+        // If user clicked "I got it!", mark as learned
+        if (response === "I got it! Don't show again") {
+            await this.learnedShortcutsManager.markAsLearned(shortcut.shortcut, shortcut.action);
         }
-        return null;
     }
 
-    // Rule: Alt+Up/Down (Move Line)
-    private detectMoveLine(events: InteractionEvent[], lastEvent: InteractionEvent): Recommendation | null {
-        if (lastEvent.type !== 'textChange') return null;
-
-        if (lastEvent.data.contentChanges.length === 1) {
-            const change = lastEvent.data.contentChanges[0];
-            if (change.text.includes('\n')) {
-                const prevTextEvent = this.getPrevTextChange(events, events.length - 2);
-                if (prevTextEvent && prevTextEvent.data.contentChanges.length === 1 && prevTextEvent.data.contentChanges[0].text === '') {
-                    const deletedLength = prevTextEvent.data.contentChanges[0].rangeLength;
-                    const insertedLength = change.text.length;
-                    if (Math.abs(deletedLength - insertedLength) <= 2 && deletedLength > 5) {
-                        return {
-                            id: 'moveLine',
-                            message: 'move line',
-                            shortcut: 'Alt+Up/Down'
-                        };
-                    }
-                }
-            }
-        }
-        return null;
+    private getShortcutKey(shortcut: Shortcut): string {
+        return `${shortcut.shortcut}:${shortcut.action}`;
     }
 
-    // Rule: Ctrl+D (Add Selection to Next Find Match)
-    private detectNextFindMatch(events: InteractionEvent[], lastEvent: InteractionEvent): Recommendation | null {
-        if (lastEvent.type !== 'selectionChange') return null;
+    private formatAction(action: string): string {
+        // Convert action to lowercase and ensure it starts with a verb
+        // Remove quotes and newlines for display
+        let formatted = action.replace(/"/g, '').replace(/\n/g, ' ').trim();
 
-        const currentSel = lastEvent.data.selections[0];
-        if (!currentSel.isEmpty) {
-            const doc = lastEvent.data.textEditor.document;
-            const text = doc.getText(currentSel);
-
-            for (let i = events.length - 2; i >= 0; i--) {
-                const e = events[i];
-                if (e.type === 'selectionChange') {
-                    const prevSel = e.data.selections[0];
-                    if (!prevSel.isEmpty) {
-                        const prevText = e.data.textEditor.document.getText(prevSel);
-                        if (text === prevText && text.length > 1 && !currentSel.isEqual(prevSel)) {
-                            return {
-                                id: 'addSelectionToNextFindMatch',
-                                message: 'select next occurrence',
-                                shortcut: 'Ctrl+D'
-                            };
-                        }
-                    }
-                }
-            }
+        // If the action doesn't start with a lowercase letter, make it lowercase
+        if (formatted.length > 0 && formatted[0] === formatted[0].toUpperCase()) {
+            formatted = formatted[0].toLowerCase() + formatted.slice(1);
         }
-        return null;
-    }
 
-    // Rule: Ctrl+Tab (Switching Tabs)
-    private detectTabSwitching(events: InteractionEvent[], lastEvent: InteractionEvent): Recommendation | null {
-        if (lastEvent.type === 'activeEditorChange') {
-            return {
-                id: 'switchTabs',
-                message: 'switch tabs',
-                shortcut: 'Ctrl+Tab'
-            };
-        }
-        return null;
-    }
-
-    // Rule: Ctrl+\ (Split Editor)
-    private detectSplitEditor(events: InteractionEvent[], lastEvent: InteractionEvent): Recommendation | null {
-        if (lastEvent.type === 'visibleEditorsChange') {
-            // Find previous visibleEditorsChange event to compare count
-            for (let i = events.length - 2; i >= 0; i--) {
-                if (events[i].type === 'visibleEditorsChange') {
-                    if (lastEvent.data.count > events[i].data.count) {
-                        return {
-                            id: 'splitEditor',
-                            message: 'split editor',
-                            shortcut: 'Ctrl+\\'
-                        };
-                    }
-                    break;
-                }
-            }
-        }
-        return null;
-    }
-
-    // Rule: Ctrl+` (Toggle Terminal)
-    private detectToggleTerminal(events: InteractionEvent[], lastEvent: InteractionEvent): Recommendation | null {
-        if (lastEvent.type === 'activeTerminalChange') {
-            return {
-                id: 'toggleTerminal',
-                message: 'toggle terminal',
-                shortcut: 'Ctrl+`'
-            };
-        }
-        return null;
-    }
-
-    // Rule: Ctrl+S (Save)
-    private detectSave(events: InteractionEvent[], lastEvent: InteractionEvent): Recommendation | null {
-        if (lastEvent.type === 'fileSave') {
-            return {
-                id: 'saveFile',
-                message: 'save file',
-                shortcut: 'Ctrl+S'
-            };
-        }
-        return null;
-    }
-
-    // Rule: Ctrl+G or PageUp/Down (Scrolling)
-    private detectScrolling(events: InteractionEvent[], lastEvent: InteractionEvent): Recommendation | null {
-        if (lastEvent.type === 'visibleRangeChange') {
-            const now = Date.now();
-            if (now - this.lastScrollRecommendationTime > this.SCROLL_RECOMMENDATION_COOLDOWN) {
-                this.lastScrollRecommendationTime = now;
-                return {
-                    id: 'smartNavigation',
-                    message: 'jump to line, or PageUp/Down to scroll faster',
-                    shortcut: 'Ctrl+G'
-                };
-            }
-        }
-        return null;
+        return formatted;
     }
 }

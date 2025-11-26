@@ -1,37 +1,48 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
+import { ShortcutsLoader } from './shortcuts-loader';
 import { InteractionTracker } from './tracker';
-import { Analyzer, Recommendation } from './analyzer';
-import { Configuration } from './config';
+import { Analyzer } from './analyzer';
+import { LearnedShortcutsManager } from './learned-shortcuts-manager';
+import { LearnedShortcutsViewer } from './learned-shortcuts-viewer';
 
 export function activate(context: vscode.ExtensionContext) {
-    console.log('Shortcuts Helper is active');
+    console.log('Shortcuts Helper extension is now active!');
 
+    // Initialize shortcuts loader
+    const csvPath = path.join(context.extensionPath, 'shortcuts.csv');
+    const shortcutsLoader = new ShortcutsLoader(csvPath);
+    shortcutsLoader.load();
+
+    // Initialize learned shortcuts manager
+    const learnedShortcutsManager = new LearnedShortcutsManager(context.globalState);
+
+    // Initialize analyzer
+    const analyzer = new Analyzer(shortcutsLoader, learnedShortcutsManager);
+
+    // Initialize tracker
     const tracker = new InteractionTracker();
-    const analyzer = new Analyzer();
-    const config = new Configuration();
 
-    let lastRecommendationTime = 0;
+    // Connect tracker to analyzer
+    tracker.on('interaction', (event) => {
+        analyzer.analyzeInteraction(event);
+    });
 
-    const interval = setInterval(() => {
-        const events = tracker.getRecentEvents();
-        const recommendation = analyzer.analyze(events);
+    // Register disposables
+    context.subscriptions.push(tracker);
 
-        if (recommendation) {
-            const now = Date.now();
-            if (now - lastRecommendationTime > config.cooldownInterval) {
-                lastRecommendationTime = now;
-                showRecommendation(recommendation);
-            }
+    // Register command to view learned shortcuts
+    const viewLearnedShortcutsCommand = vscode.commands.registerCommand(
+        'shortcuts-helper.viewLearnedShortcuts',
+        () => {
+            const viewer = new LearnedShortcutsViewer(context, learnedShortcutsManager);
+            viewer.show();
         }
-    }, 1000);
+    );
 
-    context.subscriptions.push({ dispose: () => clearInterval(interval) });
-
-    function showRecommendation(rec: Recommendation) {
-        vscode.window.showInformationMessage(
-            `Tip: Use ${rec.shortcut} to ${rec.message}`
-        );
-    }
+    context.subscriptions.push(viewLearnedShortcutsCommand);
 }
 
-export function deactivate() { }
+export function deactivate() {
+    console.log('Shortcuts Helper extension is now deactivated.');
+}
