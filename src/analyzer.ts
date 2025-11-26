@@ -258,6 +258,11 @@ export class Analyzer {
     }
 
     private selectBestShortcut(shortcuts: Shortcut[], event: InteractionEvent): Shortcut {
+        // For tipOfTheDay, always show the first unlearned tip (progressive learning)
+        if (event.type === 'tipOfTheDay' && shortcuts.length > 0) {
+            return shortcuts[0];
+        }
+
         // For activeEditorChange, use weighted selection
         if (event.type === 'activeEditorChange' && shortcuts.length > 0) {
             // 65% chance to show the first shortcut, 35% chance to randomly select from all

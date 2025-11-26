@@ -22,6 +22,8 @@ debugStart,True,F5,start / continue debugging
 debugStart,True,Shift+F5,stop debugging
 debugStart,True,F9,toggle breakpoint
 debugStart,True,F10,step over (during debugging)
+tipOfTheDay,True,Ctrl+Z / Ctrl+Shift+Z,undo and redo your changes! You can go back and forth between them infinitely - it's like a time machine for your code!
+tipOfTheDay,True,Ctrl+Shift+P,show the Command Palette and type 'auto save' to turn on automatic saving - never lose your work again!
 tipOfTheDay,True,Ctrl+Shift+P,show the Command Palette and type 'color theme' to change your editor's appearance
 tipOfTheDay,True,Ctrl+Shift+P,show the Command Palette and type 'format document' to clean up your code
 tipOfTheDay,True,Ctrl+Shift+P,show the Command Palette and type 'toggle terminal' to show/hide the terminal
@@ -42,11 +44,6 @@ windowStateChange,True,Alt+Tab,switch windows (OS-level shortcut)
 windowStateChange,True,Ctrl+Shift+N,open a new window/instance
 windowStateChange,True,Ctrl+Shift+W,close the current window/instance
 windowStateChange,True,F11,toggle full screen
-
-
-fileSave,False,Ctrl+K S,save All
-fileSave,False,Ctrl+S,save
-
 
 selectionChange,False,Alt+F12,peek Definition
 selectionChange,False,Ctrl+.," ""quick Fix"""
