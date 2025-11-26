@@ -16,7 +16,7 @@ export type InteractionType =
     | 'quickFixTrigger'
     | 'referencesTrigger'
     | 'debugStart'
-    | 'debugStop';
+    | 'tipOfTheDay';
 
 export interface InteractionEvent {
     type: InteractionType;
@@ -156,12 +156,6 @@ export class InteractionTracker extends EventEmitter {
         this.disposables.push(
             vscode.debug.onDidStartDebugSession((session) => {
                 this.emitEvent('debugStart', { session });
-            })
-        );
-
-        this.disposables.push(
-            vscode.debug.onDidTerminateDebugSession((session) => {
-                this.emitEvent('debugStop', { session });
             })
         );
     }

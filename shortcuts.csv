@@ -22,38 +22,31 @@ debugStart,True,F5,start / continue debugging
 debugStart,True,Shift+F5,stop debugging
 debugStart,True,F9,toggle breakpoint
 debugStart,True,F10,step over (during debugging)
+tipOfTheDay,True,Ctrl+Shift+P,show the Command Palette and type 'color theme' to change your editor's appearance
+tipOfTheDay,True,Ctrl+Shift+P,show the Command Palette and type 'format document' to clean up your code
+tipOfTheDay,True,Ctrl+Shift+P,show the Command Palette and type 'toggle terminal' to show/hide the terminal
+tipOfTheDay,True,Ctrl+Shift+P,show the Command Palette and type 'file icon theme' to change folder/file icons
+tipOfTheDay,True,Ctrl+Shift+P,show the Command Palette and type 'reload window' to restart VS Code quickly
+tipOfTheDay,True,"Ctrl+,",open Settings to customize VS Code
+tipOfTheDay,True,Ctrl+B,show/hide the left sidebar (where you see your files)
+tipOfTheDay,True,Ctrl+K Ctrl+S,open Keyboard Shortcuts settings
+tipOfTheDay,True,Ctrl+Shift+D,open Debug view (to run and test your code step-by-step)
+tipOfTheDay,True,Ctrl+Shift+E,open Explorer view (to see your project files and folders)
+tipOfTheDay,True,Ctrl+Shift+F,open Search view (to find text across all files)
+tipOfTheDay,True,Ctrl+Shift+G,open Source Control view (to manage Git changes)
+tipOfTheDay,True,Ctrl+Shift+H,open Find and Replace across all files
+tipOfTheDay,True,Ctrl+Shift+M,open Problems view (to see errors and warnings in your code)
+tipOfTheDay,True,Ctrl+Shift+U,open Output view (to see logs and messages from extensions)
+tipOfTheDay,True,Ctrl+Shift+X,open Extensions view (to install and manage extensions)
 windowStateChange,True,Alt+Tab,switch windows (OS-level shortcut)
 windowStateChange,True,Ctrl+Shift+N,open a new window/instance
 windowStateChange,True,Ctrl+Shift+W,close the current window/instance
 windowStateChange,True,F11,toggle full screen
 
-commandExecution,False,Ctrl+C,copy selection in terminal
-commandExecution,False,Ctrl+K F,close folder
-commandExecution,False,Ctrl+K P,copy the absolute path of active file
-commandExecution,False,Ctrl+K Ctrl+Shift+C,copy the relative path of active file
-commandExecution,False,Ctrl+K R,reveal active file in Explorer
-commandExecution,False,Ctrl+Shift+J,toggle Search details
-commandExecution,False,Ctrl+Shift+P,show the Command Palette
-commandExecution,False,Ctrl+V,paste into active terminal
-commandExecution,False,Shift+PgUp / Shift+PgDn,scroll page up/down in terminal
-
 
 fileSave,False,Ctrl+K S,save All
 fileSave,False,Ctrl+S,save
-textChange,False,Ctrl+Shift+Space,trigger parameter hints
-textChange,False,Ctrl+Space / Ctrl+I,trigger suggestion (IntelliSense)
 
-panelVisibilityChange,False,"Ctrl+,",open User Settings
-panelVisibilityChange,False,Ctrl+B,toggle Sidebar visibility
-panelVisibilityChange,False,Ctrl+K Ctrl+S,open the Keyboard Shortcuts editor
-panelVisibilityChange,False,Ctrl+Shift+D,show Debug panel
-panelVisibilityChange,False,Ctrl+Shift+E,show Explorer / toggle focus
-panelVisibilityChange,False,Ctrl+Shift+F,show Search panel
-panelVisibilityChange,False,Ctrl+Shift+G,show Source Control panel
-panelVisibilityChange,False,Ctrl+Shift+H,replace in files
-panelVisibilityChange,False,Ctrl+Shift+M,show Problems panel (Errors/Warnings)
-panelVisibilityChange,False,Ctrl+Shift+U,show Output panel
-panelVisibilityChange,False,Ctrl+Shift+X,show Extensions panel
 
 selectionChange,False,Alt+F12,peek Definition
 selectionChange,False,Ctrl+.," ""quick Fix"""
@@ -76,6 +69,11 @@ selectionChange,False,F8 / Shift+F8,go to next / previous error or warning
 selectionChange,False,Shift+Alt+I,insert cursor at end of each line selected
 selectionChange,False,Shift+Alt+Mouse Drag,column (box) selection with mouse
 selectionChange,False,Shift+Alt+→ / Shift+Alt+←,expand / shrink selection
+selectionChange,False,Ctrl+C,copy the selection
+selectionChange,False,Ctrl+V,paste the selection
+selectionChange,False,PgUp / PgDn,scroll up/down in the editor
+textChange,False,Ctrl+K P,copy the absolute path of active file
+textChange,False,Ctrl+K Ctrl+Shift+C,copy the relative path of active file
 textChange,False,Alt+↑ / Alt+↓,move the current line or selected lines up/down
 textChange,False,Ctrl+Backspace,delete word left
 textChange,False,Ctrl+Enter,insert a new line below the current cursor position
@@ -87,3 +85,5 @@ textChange,False,Ctrl+X,cut the entire line when no text is selected
 textChange,False,F2,rename Symbol
 textChange,False,Shift+Alt+F,format document
 textChange,False,Shift+Alt+↓ / Shift+Alt+↑,copy the current line or selected lines up/down
+textChange,False,Ctrl+Shift+Space,trigger parameter hints
+textChange,False,Ctrl+Space / Ctrl+I,trigger suggestion (IntelliSense)

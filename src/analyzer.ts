@@ -19,9 +19,9 @@ export class Analyzer {
     }
 
     public async analyzeInteraction(event: InteractionEvent): Promise<void> {
-        // Check cooldown
+        // Check cooldown (bypass for tipOfTheDay since it only fires once on startup)
         const now = Date.now();
-        if (now - this.lastRecommendationTime < this.cooldownInterval) {
+        if (event.type !== 'tipOfTheDay' && now - this.lastRecommendationTime < this.cooldownInterval) {
             return;
         }
 
@@ -70,7 +70,7 @@ export class Analyzer {
         this.shownShortcuts.add(this.getShortcutKey(selectedShortcut));
 
         // Show recommendation
-        await this.showRecommendation(selectedShortcut);
+        await this.showRecommendation(selectedShortcut, event);
     }
 
     private filterByContext(shortcuts: Shortcut[], event: InteractionEvent): Shortcut[] {
@@ -118,8 +118,8 @@ export class Analyzer {
             case 'debugStart':
                 return this.filterDebugStart(shortcuts, event);
 
-            case 'debugStop':
-                return this.filterDebugStop(shortcuts, event);
+            case 'tipOfTheDay':
+                return this.filterTipOfTheDay(shortcuts, event);
 
             default:
                 return shortcuts;
@@ -161,9 +161,12 @@ export class Analyzer {
     }
 
     private filterActiveTerminalChange(shortcuts: Shortcut[], event: InteractionEvent): Shortcut[] {
-        // Only recommend if there's an active terminal
+        // Only recommend if there's an active terminal (not when terminal becomes inactive)
+        // When terminal becomes inactive, event.context.terminal will be undefined
         if (!event.context?.terminal) {
-            return [];
+            return shortcuts.filter(s =>
+                s.shortcut.includes('Ctrl+↑ / Ctrl+↓') || s.shortcut.includes('Ctrl+`')
+            );
         }
         return shortcuts;
     }
@@ -249,6 +252,11 @@ export class Analyzer {
         return shortcuts;
     }
 
+    private filterTipOfTheDay(shortcuts: Shortcut[], event: InteractionEvent): Shortcut[] {
+        // Tip of the day shows on startup - no filtering needed
+        return shortcuts;
+    }
+
     private selectBestShortcut(shortcuts: Shortcut[], event: InteractionEvent): Shortcut {
         // For activeEditorChange, use weighted selection
         if (event.type === 'activeEditorChange' && shortcuts.length > 0) {
@@ -300,8 +308,9 @@ export class Analyzer {
         return shortcuts[randomIndex];
     }
 
-    private async showRecommendation(shortcut: Shortcut): Promise<void> {
-        const message = `Shortcut Tip: Use ${shortcut.shortcut} to ${this.formatAction(shortcut.action)}`;
+    private async showRecommendation(shortcut: Shortcut, event: InteractionEvent): Promise<void> {
+        const tipLabel = event.type === 'tipOfTheDay' ? 'Shortcut Tip of the Day' : 'Shortcut Tip';
+        const message = `${tipLabel}: Use ${shortcut.shortcut} to ${this.formatAction(shortcut.action)}`;
         const response = await vscode.window.showInformationMessage(
             message,
             "I got it! Don't show again",

@@ -28,6 +28,14 @@ export function activate(context: vscode.ExtensionContext) {
         analyzer.analyzeInteraction(event);
     });
 
+    // Show tip of the day on startup
+    const tipEvent = {
+        type: 'tipOfTheDay' as const,
+        timestamp: Date.now(),
+        context: {}
+    };
+    analyzer.analyzeInteraction(tipEvent);
+
     // Register disposables
     context.subscriptions.push(tracker);
 
