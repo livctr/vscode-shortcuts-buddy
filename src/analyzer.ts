@@ -138,128 +138,26 @@ export class Analyzer {
 
         const ctx = event.context;
 
-        // Debug: Show filename information
-        console.log('=== DEBUG: Active Editor Change ===');
-        console.log('Filename:', ctx.fileName);
-        console.log('Language ID:', ctx.languageId);
-        console.log('Is Untitled:', ctx.isUntitled);
-        console.log('Tab Count Increased:', ctx.tabCountIncreased);
-        console.log('Tab Group Count Increased:', ctx.tabGroupCountIncreased);
-        console.log('===================================');
+        // Debug: Show filename information as popup
+        const debugMsg = `DEBUG: File="${ctx.fileName?.split('/').pop() || 'unknown'}" | Untitled=${ctx.isUntitled} | TabInc=${ctx.tabCountIncreased}`;
+        vscode.window.showInformationMessage(debugMsg);
 
-        return shortcuts.filter(s => {
-            const shortcut = s.shortcut;
+        // Check if current file is markdown
+        const isMarkdown = ctx.languageId === 'markdown' ||
+            ctx.fileName?.endsWith('.md') ||
+            ctx.fileName?.endsWith('.markdown');
 
-            // === GROUP 1: SPLIT EDITOR ===
-            if (shortcut.includes('Ctrl+\\')) {
-                // Split creates a new editor group
-                return ctx.tabGroupCountIncreased;
-            }
+        if (isMarkdown) {
+            // For markdown files, only show markdown preview shortcuts
+            return shortcuts.filter(s =>
+                s.shortcut.includes('Ctrl+K V') || s.shortcut.includes('Ctrl+Shift+V')
+            );
+        }
 
-            // === GROUP 2: NEW FILES ===
-            if (shortcut.includes('Ctrl+N')) {
-                // New file is untitled - check both isUntitled flag and filename
-                const hasUntitledInName = ctx.fileName?.includes('Untitled') ?? false;
-                return (ctx.isUntitled || hasUntitledInName) && ctx.tabCountIncreased;
-            }
-
-            if (shortcut.includes('Ctrl+O') || shortcut.includes('Ctrl+P')) {
-                // Opening file increases tab count but is NOT untitled
-                const hasUntitledInName = ctx.fileName?.includes('Untitled') ?? false;
-                return !ctx.isUntitled && !hasUntitledInName && ctx.tabCountIncreased;
-            }
-
-            if (shortcut.includes('Ctrl+Shift+T')) {
-                // Reopen increases tab count
-                return ctx.tabCountIncreased;
-            }
-
-            // === GROUP 3: NAVIGATION WITHIN TABS ===
-            if (shortcut.includes('PageUp') || shortcut.includes('PageDown')) {
-                // Navigate within same group, no count changes
-                return !ctx.tabCountChanged && !ctx.viewColumnChanged;
-            }
-
-            if (shortcut.includes('Ctrl+Tab')) {
-                // Navigate through history, might change groups
-                return !ctx.tabCountChanged;
-            }
-
-            if (shortcut.includes('Alt+') && /Alt\+\d/.test(shortcut)) {
-                // Alt+1/2/3 - go to specific tab number
-                return !ctx.tabCountChanged && !ctx.viewColumnChanged;
-            }
-
-            if (shortcut.includes('Ctrl+1') || shortcut.includes('Ctrl+2') || shortcut.includes('Ctrl+3')) {
-                // Focus into specific editor group - viewColumn changes
-                return ctx.viewColumnChanged && !ctx.tabCountChanged;
-            }
-
-            // === GROUP 4: EDITOR GROUP NAVIGATION ===
-            if (shortcut.includes('Ctrl+K Ctrl+←') || shortcut.includes('Ctrl+K Ctrl+→')) {
-                // Focus into prev/next group
-                return ctx.viewColumnChanged && !ctx.tabCountChanged;
-            }
-
-            // === GROUP 5: MOVING EDITORS ===
-            if (shortcut.includes('Ctrl+K ←') || shortcut.includes('Ctrl+K →')) {
-                // Move editor group - might change group count or order
-                return ctx.tabGroupCount > 1;
-            }
-
-            if (shortcut.includes('Ctrl+Shift+PgUp') || shortcut.includes('Ctrl+Shift+PgDn')) {
-                // Move editor left/right within group
-                return !ctx.tabCountChanged;
-            }
-
-            // === GROUP 6: PREVIEW MODE ===
-            if (shortcut.includes('Ctrl+K Enter')) {
-                // Keep preview open - preview becomes non-preview
-                return ctx.becameNonPreview;
-            }
-
-            // === GROUP 7: MARKDOWN PREVIEW ===
-            if (shortcut.includes('Ctrl+K V')) {
-                // Open preview to the side - increases groups
-                // Check both languageId and filename extension
-                const isMarkdown = ctx.languageId === 'markdown' || ctx.fileName?.endsWith('.md') || ctx.fileName?.endsWith('.markdown');
-                return isMarkdown && ctx.tabGroupCountIncreased;
-            }
-
-            if (shortcut.includes('Ctrl+Shift+V')) {
-                // Open preview - might replace current or open new
-                // Check both languageId and filename extension
-                const isMarkdown = ctx.languageId === 'markdown' || ctx.fileName?.endsWith('.md') || ctx.fileName?.endsWith('.markdown');
-                return isMarkdown;
-            }
-
-            // === GROUP 8: GO TO DEFINITION ===
-            if (shortcut === 'F12') {
-                // Go to definition - same document or new
-                return true; // Hard to differentiate from other navigation
-            }
-
-            if (shortcut.includes('Ctrl+K F12')) {
-                // Open definition to side - increases groups
-                return ctx.tabGroupCountIncreased;
-            }
-
-            // === GROUP 9: LAYOUT CHANGES ===
-            if (shortcut.includes('Shift+Alt+0')) {
-                // Toggle layout - group count stays same but arrangement changes
-                return ctx.tabGroupCount > 1;
-            }
-
-            // === GROUP 10: CLOSE ALL ===
-            if (shortcut.includes('Ctrl+K Ctrl+W')) {
-                // Close all - this actually triggers documentClose, not activeEditorChange
-                // But if it does trigger, tab count would decrease dramatically
-                return ctx.tabCountInActiveGroup === 0;
-            }
-
-            // Default: allow if we can't confidently filter out
-            return true;
-        });
+        // For non-markdown files, exclude markdown shortcuts
+        return shortcuts.filter(s =>
+            !s.shortcut.includes('Ctrl+K V') && !s.shortcut.includes('Ctrl+Shift+V')
+        );
     }
 
     private filterActiveTerminalChange(shortcuts: Shortcut[], event: InteractionEvent): Shortcut[] {
@@ -352,6 +250,18 @@ export class Analyzer {
     }
 
     private selectBestShortcut(shortcuts: Shortcut[], event: InteractionEvent): Shortcut {
+        // For activeEditorChange, use weighted selection
+        if (event.type === 'activeEditorChange' && shortcuts.length > 0) {
+            // 75% chance to show the first shortcut, 25% chance to randomly select from all
+            const random = Math.random();
+            if (random < 0.75) {
+                return shortcuts[0]; // First unlearned shortcut
+            } else {
+                // Randomly select from all shortcuts
+                return this.selectRandomShortcut(shortcuts);
+            }
+        }
+
         // Prioritize specific shortcuts based on event type
         if (event.type === 'windowStateChange') {
             const altTab = shortcuts.find(s => s.shortcut === 'Alt+Tab');
