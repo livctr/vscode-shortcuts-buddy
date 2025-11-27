@@ -2,7 +2,7 @@
 
 ## 📚 About
 
-Have you ever watched someone try to code and they were SO SLOW? Then this extension is for them! Never click and drag windows again. Use Alt+Tab! **Shortcuts Helper** is like training wheels for learning nifty VSCode shortcuts.
+Have you ever watched someone try to code and they were SO SLOW? Then this extension is for them! Never click and drag windows again: use Alt+Tab! **Shortcuts Helper** is like training wheels for learning nifty VSCode shortcuts.
 
 ## 🎮 How It Works
 
@@ -12,6 +12,7 @@ Imagine having a friend who taps you on the shoulder and says, *"Psst! You can d
 2.  **Get Tips**: If you do something "the slow way" (like using the mouse too much), a friendly popup will show you the shortcut.
 3.  **Level Up**: Use the shortcut next time! Once you've got it down, we'll stop bugging you about it.
 4.  **How am I doing?**: Open the Command Palette (`Ctrl+Shift+P`) and type: `Shortcuts Helper: View Learned Shortcuts` to see what you've learned!
+5.  **Support**: Works on both **Windows** and **macOS**! Please note that Mac shortcuts were not extensively verified, and the only default shortcuts are supported.
 
 ## ⚡ Superpowers You Can Learn
 

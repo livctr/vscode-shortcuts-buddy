@@ -9,8 +9,13 @@ import { LearnedShortcutsViewer } from './learned-shortcuts-viewer';
 export function activate(context: vscode.ExtensionContext) {
     console.log('Shortcuts Helper extension is now active!');
 
-    // Initialize shortcuts loader
-    const csvPath = path.join(context.extensionPath, 'shortcuts/shortcuts_curated.csv');
+    // Detect OS and load appropriate shortcuts file
+    const isMac = process.platform === 'darwin';
+    const csvFileName = isMac ? 'shortcuts_curated_mac.csv' : 'shortcuts_curated_windows.csv';
+    const csvPath = path.join(context.extensionPath, 'shortcuts', csvFileName);
+
+    console.log(`Loading shortcuts for ${isMac ? 'macOS' : 'Windows'}: ${csvFileName}`);
+
     const shortcutsLoader = new ShortcutsLoader(csvPath);
     shortcutsLoader.load();
 

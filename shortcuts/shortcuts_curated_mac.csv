@@ -1,0 +1,69 @@
+interactionType,implemented,shortcut,action
+activeEditorChange,True,Cmd+N,create a fresh new file - your blank canvas awaits!
+activeEditorChange,True,Cmd+O,open any file in your project in a flash
+activeEditorChange,True,Cmd+P,"quickly open a file by typing its name! Pro tip: type > to access commands, # to search symbols across your project, or @ to jump to symbols in the current file"
+activeEditorChange,True,Cmd+\,split your editor in half - work on two files side by side like a pro!
+activeEditorChange,True,Cmd+Shift+[ / Cmd+Shift+],jump between tabs without touching your mouse
+activeEditorChange,True,Ctrl+Tab / Ctrl+Shift+Tab,travel through your editing history - go back to files you just worked on
+activeEditorChange,True,Cmd+1 / Cmd+2 / Cmd+3,"switch focus between split editors - try splitting your screen first with Cmd+\, then use this!"
+activeEditorChange,True,Cmd+W,close the current tab in a snap
+activeEditorChange,True,Cmd+K Cmd+W,close ALL tabs at once - the nuclear option!
+activeEditorChange,True,Cmd+K ← / Cmd+K →,slide your editor group left or right
+activeEditorChange,True,Cmd+Option+← / Cmd+Option+→,drag your current tab left or right without using the mouse
+activeEditorChange,True,Cmd+Shift+T,bring back a tab you just closed - it's like an undo button for tabs!
+activeEditorChange,True,Cmd+Option+0,flip your editor layout from side-by-side to top-and-bottom (or vice versa)
+activeEditorChange,True,Cmd+K V,preview your Markdown file side-by-side while you edit - perfect for README files!
+activeEditorChange,True,Cmd+Shift+V,see how your Markdown looks rendered - try it on a .md file!
+activeTerminalChange,True,Ctrl+Shift+`,spawn a brand new terminal - you can have multiple!
+activeTerminalChange,True,Ctrl+`,toggle the terminal on and off like magic
+activeTerminalChange,True,Cmd+↑ / Cmd+↓,flip between your editor and terminal without touching your mouse
+debugStart,True,F5,launch your code and watch it run! Press again to continue when paused
+debugStart,True,Shift+F5,stop debugging and return to normal editing
+debugStart,True,F9,set a breakpoint to pause your code at that line - click the line first!
+debugStart,True,F10,step through your code one line at a time - see exactly what's happening!
+scrollChange,True,Fn+↑ / Fn+↓,jump up or down a whole screen at once - way faster than scrolling!
+selectionChange,True,Cmd+← / Cmd+→,teleport your cursor to the start or end of the line instantly
+selectionChange,True,Shift+Option+→,grow your selection to include the whole word or line - keep pressing to expand more!
+textChange,True,Option+Click,click anywhere to add another cursor - now you can type in multiple places at once!
+textChange,True,Cmd+D,select the next occurrence of the word under your cursor - keep pressing to select more!
+textChange,True,Cmd+F2,select ALL occurrences of the current word at once - change them all together!
+textChange,True,Option+Shift+↓ / Option+Shift+↑,duplicate the current line up or down - no more copy-paste needed!
+textChange,True,Cmd+C then Cmd+V,"copy and paste an entire line without selecting it first - just put your cursor on the line!"
+textChange,True,Cmd+X,cut the entire line without selecting it - your cursor just needs to be on that line!
+textChange,True,Cmd+Shift+K,delete the current line instantly - poof! It's gone!
+textChange,True,Option+Delete,delete entire words at a time instead of one character - so much faster!
+textChange,True,Cmd+/,comment or uncomment lines of code instantly - works in any language!
+tipOfTheDay,True,Cmd+Z / Cmd+Shift+Z,undo and redo your changes! You can go back and forth between them infinitely - it's like a time machine for your code!
+tipOfTheDay,True,Option+↑ / Option+↓,move lines up or down without cutting and pasting - try it right now on this line!
+tipOfTheDay,True,Cmd+Enter,insert a new line below without moving your cursor - try it in the middle of a line!
+tipOfTheDay,True,Cmd+F,find any word in your file instantly - try searching for a common word!
+tipOfTheDay,True,Cmd+Option+↑ / Cmd+Option+↓,add cursors above or below - type in multiple places at once like a wizard!
+tipOfTheDay,True,Cmd+Shift+P,"open the Command Palette and type 'auto save' - never lose your work again!"
+tipOfTheDay,True,Cmd+Shift+P,"open the Command Palette and type 'color theme' - make VS Code look exactly how you want!"
+tipOfTheDay,True,Cmd+Shift+P,"open the Command Palette and type 'format document' - instantly clean up messy code!"
+tipOfTheDay,True,Cmd+Shift+P,"open the Command Palette and type 'toggle terminal' - show or hide the terminal instantly!"
+tipOfTheDay,True,Cmd+Shift+P,"open the Command Palette and type 'file icon theme' - make your file icons look cool!"
+tipOfTheDay,True,Cmd+Shift+P,"open the Command Palette and type 'reload window' - restart VS Code in one second!"
+tipOfTheDay,True,Cmd+F then type a repeated word in your file then Cmd+G / Cmd+Shift+G,find a word then jump between all matches with Cmd+G (next) and Cmd+Shift+G (previous) - try it now!
+tipOfTheDay,True,Option+Shift+F,format your entire document to look perfect - works with any language!
+tipOfTheDay,True,Cmd+Shift+Space,see hints about function parameters while you type - super helpful when coding!
+tipOfTheDay,True,Ctrl+Space,trigger autocomplete suggestions - let VS Code help you type faster!
+tipOfTheDay,True,"Cmd+,",open Settings to customize everything about VS Code - make it yours!
+tipOfTheDay,True,Cmd+B,hide or show the file explorer sidebar - get more screen space when you need it!
+tipOfTheDay,True,Cmd+K Cmd+S,view and customize ALL keyboard shortcuts - become a shortcut master!
+tipOfTheDay,True,Cmd+Shift+D,open the Debug panel - run your code step-by-step to find bugs!
+tipOfTheDay,True,Cmd+Shift+E,open the Explorer - see all your project files and folders!
+tipOfTheDay,True,Cmd+Shift+F,search for text across your ENTIRE project - find anything anywhere!
+tipOfTheDay,True,Cmd+Shift+G,open Source Control - see what files you've changed and commit them!
+tipOfTheDay,True,Cmd+Shift+H,find and replace text across all files - change things everywhere at once!
+tipOfTheDay,True,Cmd+Shift+M,see all errors and warnings in your code - fix them before they cause problems!
+tipOfTheDay,True,Cmd+Shift+U,view output from extensions and tools - see what's happening behind the scenes!
+tipOfTheDay,True,Cmd+Shift+X,browse and install extensions - add superpowers to VS Code!
+tipOfTheDay,True,Cmd+K P,copy the full path of your current file - useful for sharing or referencing!
+tipOfTheDay,True,Cmd+K Cmd+Shift+C,copy the relative path of your file - shorter and cleaner than the full path!
+tipOfTheDay,True,Option+Z,toggle word wrap - make long lines fit on your screen without scrolling sideways!
+tipOfTheDay,True,Ctrl+G,jump to any line number instantly - type the line number and press Enter!
+windowStateChange,True,Cmd+Tab,switch between VS Code and other apps instantly - works everywhere on Mac!
+windowStateChange,True,Cmd+Shift+N,open a new VS Code window - work on multiple projects at once!
+windowStateChange,True,Cmd+Shift+W,close the entire VS Code window - all tabs at once!
+windowStateChange,True,Ctrl+Cmd+F,go full screen for maximum focus - no distractions!
