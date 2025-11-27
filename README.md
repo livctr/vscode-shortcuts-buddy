@@ -1,56 +1,37 @@
-# Shortcuts Helper
+# 🚀 Shortcuts Helper: Level Up Your Coding Speed!
 
-Shortcuts Helper is a VS Code extension designed to help you become a keyboard power user. It tracks your interactions with the editor and intelligently suggests keyboard shortcuts to improve your efficiency.
+## 📚 About
 
-## Features
+Have you ever watched someone try to code and they were SO SLOW? Then this extension is for them! Never click and drag windows again. Use Alt+Tab! **Shortcuts Helper** is like training wheels for learning nifty VSCode shortcuts.
 
-- **Intelligent Suggestions**: Detects inefficient actions (like using the mouse for tasks that have shortcuts) and suggests the corresponding keyboard shortcut.
-- **Context-Aware**: Suggestions are tailored to your current context (e.g., editing text, navigating files, debugging).
-- **Progressive Learning**: Tracks which shortcuts you've learned and stops suggesting them once you've mastered them.
-- **Tip of the Day**: Shows a helpful shortcut tip on startup to expand your knowledge.
-- **Learned Shortcuts View**: View a list of all the shortcuts you've learned and unlearn them if needed.
+## 🎮 How It Works
 
-## Supported Detections
+Imagine having a friend who taps you on the shoulder and says, *"Psst! You can do that way faster!"* That's exactly what **Shortcuts Helper** does.
 
-The extension currently detects and suggests shortcuts for:
+1.  **Just Code**: Go about your normal coding.
+2.  **Get Tips**: If you do something "the slow way" (like using the mouse too much), a friendly popup will show you the shortcut.
+3.  **Level Up**: Use the shortcut next time! Once you've got it down, we'll stop bugging you about it.
+4.  **How am I doing?**: Open the Command Palette (`Ctrl+Shift+P`) and type: `Shortcuts Helper: View Learned Shortcuts` to see what you've learned!
 
-- **Text Editing**:
-    - Copy/Cut/Paste lines (`Ctrl+C`, `Ctrl+X`, `Ctrl+V`)
-    - Delete lines (`Ctrl+Shift+K`)
-    - Delete words (`Ctrl+Backspace`)
-    - Duplicate lines (`Shift+Alt+Down/Up`)
-    - Multi-cursor editing (`Ctrl+Alt+Down/Up`, `Alt+Click`)
-    - Commenting code (`Ctrl+/`)
-- **Navigation**:
-    - Go to line start/end (`Fn+Left/Right` or `Home/End`)
-    - Expand selection (`Shift+Alt+Right`)
-    - Switch tabs (`Ctrl+Tab`)
-    - Go to file (`Ctrl+P`)
-- **Debugging**:
-    - Start debugging (`F5`)
-    - Step over (`F10`)
-    - Toggle breakpoint (`F9`)
-- **General**:
-    - Open terminal (`Ctrl+Backtick`)
-    - Command palette (`Ctrl+Shift+P`)
-    - And many more!
+## ⚡ Superpowers You Can Learn
 
-## Configuration
+Here are some of the awesome tricks you'll master:
 
-You can customize the extension's behavior in VS Code settings:
+### 📝 Text Editing
+- **Copy/Paste like a Ninja**: Duplicate lines instantly with `Shift+Alt+Down` (no more Ctrl+C/Ctrl+V needed!).
+- **Delete Fast**: Zap a whole line with `Ctrl+Shift+K`.
+- **Comment Code**: Toggle comments on/off with `Ctrl+/`.
+- **Multi-Cursor Magic**: Edit multiple lines at once with `Ctrl+Alt+Down` or `Alt+Click`. It feels like magic! ✨
 
-- `shortcutsHelper.cooldownInterval`: Time in milliseconds between recommendations (default: 300000ms / 5 mins).
-- `shortcutsHelper.sessionRecommendationLimit`: Maximum number of recommendations to show per session (default: 3).
-- `shortcutsHelper.debounceInterval`: Delay in milliseconds after typing or scrolling before analyzing events (default: 500ms).
+### 🧭 Navigation
+- **Teleport**: Jump to the start or end of a line with `Fn+Left/Right` (or `Home/End`).
+- **Switch Tabs**: Flip between files fast with `Ctrl+Tab`.
+- **Find Files**: Open any file in your project with `Ctrl+P`.
 
-## Commands
+### 🐞 Debugging
+- **Control Time**: Start/Stop your code with `F5`.
+- **Step Through**: Walk through your code line-by-line with `F10`.
 
-- `Shortcuts Helper: View Learned Shortcuts`: Opens a webview displaying all the shortcuts you have marked as learned.
+---
 
-## Release Notes
-
-### 0.0.1
-
-- Initial release with core tracking and recommendation engine.
-- Support for text editing, navigation, and debugging shortcuts.
-- "Tip of the Day" feature.
+**Ready to speed run your coding? Install Shortcuts Helper and start leveling up today!** 🚀
