@@ -1,12 +1,12 @@
 {
   "name": "shortcuts-helper",
-  "displayName": "Shortcuts Helper",
-  "description": "Tracks user interactions and suggests efficiency improvements.",
+  "displayName": "VSCode Shortcut Buddy",
+  "description": "Training wheels for VSCode shortcuts",
   "version": "0.0.1",
-  "publisher": "antigravity-user",
+  "publisher": "livctr",
   "repository": {
     "type": "git",
-    "url": "https://github.com/antigravity-user/shortcuts-helper"
+    "url": "https://github.com/livctr/shortcuts-helper"
   },
   "engines": {
     "vscode": "^1.80.0"
@@ -21,10 +21,6 @@
   "contributes": {
     "commands": [
       {
-        "command": "shortcuts-helper.helloWorld",
-        "title": "Hello World"
-      },
-      {
         "command": "shortcuts-helper.viewLearnedShortcuts",
         "title": "Shortcuts Helper: View Learned Shortcuts"
       }
@@ -34,7 +30,7 @@
       "properties": {
         "shortcutsHelper.cooldownInterval": {
           "type": "number",
-          "default": 600000,
+          "default": 3000,
           "description": "Cooldown interval in milliseconds between recommendations."
         },
         "shortcutsHelper.sessionRecommendationLimit": {
